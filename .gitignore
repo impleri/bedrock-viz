@@ -32,6 +32,9 @@ build/
 release/
 cmake-build-*/
 
+# Web
+node_modules
+
 # macOS
 ._*
 .DS_Store
