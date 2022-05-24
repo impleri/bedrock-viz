@@ -20,6 +20,12 @@ namespace mcpe_viz {
         // new logger output file
         std::filesystem::path logFile() const { return this->outputDir / "bedrock_viz.log"; }
         std::filesystem::path fnJs() const { return this->outputDir / "output.js"; }
+
+        std::filesystem::path fnWorldJSON() const { return this->outputDir / "world.json"; }
+        std::filesystem::path fnBlockJSON() const { return this->outputDir / "blocks.json"; }
+        std::filesystem::path fnBiomeJSON() const { return this->outputDir / "biomes.json"; }
+        std::filesystem::path fnIconJSON() const { return this->outputDir / "icons.json"; }
+
         std::filesystem::path fnGeoJSON() const { return this->outputDir / "output.geojson";  }
 
         // per-dimension filenames

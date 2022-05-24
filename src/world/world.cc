@@ -937,20 +937,219 @@ namespace mcpe_viz
         return "";
     }
 
+    std::string MinecraftWorld_LevelDB::getCurrentTime()
+    {
+        time_t xtime = time(NULL);
+        char timebuf[256];
+#if _MSC_VER
+        ctime_s(timebuf, 256, &xtime);
+#else
+        ctime_r(&xtime, timebuf);
+#endif
+        // todo - this is hideous.
+        // fix time string
+        char* p = strchr(timebuf, '\n');
+        if (p) { *p = 0; }
+
+        return escapeString(timebuf, "'");
+    }
+
+    // Creates info.json file for web frontend
+    int32_t MinecraftWorld_LevelDB::doOutput_worldJson()
+    {
+        log::info("Generating {}", control.fnWorldJSON().generic_string());
+        FILE* fp = fopen(control.fnWorldJSON().generic_string().c_str(), "w");
+        if (fp) {
+            // General world information
+            fprintf(fp,
+                "{\n"
+                "  \"name\": \"%s\",\n"
+                "  \"seed\": %lld,\n"
+                "  \"generatedAt\": \"%s\",\n"
+                "  \"generatorVersion\": \"%s\",\n"
+                "  \"includesGeoJSON\": %s,\n",
+                escapeString(getWorldName().c_str(), "'").c_str(),
+                (long long int) getWorldSeed(),
+                getCurrentTime().c_str(),
+                version,
+                control.noForceGeoJSONFlag ? "true" : "false"
+            );
+
+            // If we generate tiles, indicate the tile size
+            if (control.doTiles) {
+                fprintf(fp,
+                    "  \"tileSize\": [%d, %d],\n",
+                    control.tileWidth,
+                    control.tileHeight
+                );
+            } else {
+                fprintf(fp,
+                    "  \"tileSize\": false,\n"
+                );
+            }
+
+            // Dimensions information
+            fprintf(fp, "  \"dimensions\": [\n");
+            for (int32_t did = 0; did < kDimIdCount; did++) {
+                fprintf(fp, "    {\n", did);
+                fprintf(fp, "      \"name\": \"%s\",\n", dimDataList[did]->getName().c_str());
+                fprintf(fp, "      \"minX\": %d,\n", dimDataList[did]->getMinChunkX() * 16);
+                fprintf(fp, "      \"maxX\": %d,\n", (dimDataList[did]->getMaxChunkX() * 16) + 15);
+                fprintf(fp, "      \"minZ\": %d,\n", dimDataList[did]->getMinChunkZ() * 16);
+                fprintf(fp, "      \"maxZ\": %d,\n", (dimDataList[did]->getMaxChunkZ() * 16) + 15);
+                fprintf(fp, "      \"minY\": %d,\n", control.dimYBottom[did]);
+                fprintf(fp, "      \"maxY\": %d,\n", control.dimYTop[did]);
+                fprintf(fp, "      \"hasSlices\": %s,\n",
+                    dimDataList[did]->checkDoForDim(control.doSlices) ? "true" : "false");
+                fprintf(fp, "      \"spawnable\": %s",
+                    (dimDataList[did]->listCheckSpawn.size() > 0) ? "true" : "false");
+                if (did == playerPositionDimensionId)
+                {
+                    fprintf(fp, ",\n      \"localPlayerPos\": [%d, %d]", playerPositionX, playerPositionY);
+                }
+
+                // list of blocks that were added to geojson
+                if (control.noForceGeoJSONFlag) {
+                    fprintf(fp, ",\n      \"geojsonBlocks\": [\n");
+                    int32_t llen = int32_t(dimDataList[did]->blockToGeoJSONList.size());
+                    for (const auto& it : dimDataList[did]->blockToGeoJSONList) {
+                        fprintf(fp, "        \"%s\"", Block::queryName(it).c_str());
+                        if (--llen > 0) {
+                            fprintf(fp, ",");
+                        }
+                        fprintf(fp, "\n");
+                    }
+                    // close geojson blocks array
+                    fprintf(fp, "      ]");
+                }
+
+
+                // close current dimension
+                fprintf(fp, "\n    }");
+                if ((did + 1) < kDimIdCount) {
+                    fprintf(fp, ",");
+                }
+                fprintf(fp, "\n");
+            }
+            // close dimensions array
+            fprintf(fp, "  ]\n}\n");
+
+            fclose(fp);
+        }
+        else {
+            log::error("Failed to open javascript output file (fn={} error={} ({}))",
+                control.fnWorldJSON().generic_string(), strerror(errno), errno);
+        }
+
+        return 0;
+    }
+
+    int32_t MinecraftWorld_LevelDB::doOutput_blockJson()
+    {
+        log::info("Generating {}", control.fnBlockJSON().generic_string());
+        // create javascript file w/ filenames etc
+        FILE* fp = fopen(control.fnBlockJSON().generic_string().c_str(), "w");
+        if (fp) {
+
+            fprintf(fp, "var blockColorLUT = {\n");
+            for(auto& i: Block::list()) {
+                if (i->hasVariants()) {
+                    for(auto& v: i->getVariants()) {
+                        fprintf(fp, "'%d': { name: '%s', id: %d, blockdata: %d },\n",
+                                local_be32toh(v.second->color()),
+                                escapeString(v.second->name, "'").c_str(),
+                                i->id, v.second->data
+                        );
+                    }
+                }
+                else {
+                    if (i->is_color_set()) {
+                        fprintf(fp, "'%d': { name: '%s', id: %d, blockdata: %d },\n",
+                                local_be32toh(i->color()), escapeString(i->name, "'").c_str(),
+                                i->id, 0
+                        );
+                    }
+                }
+            }
+            // last, put the catch-all
+            fprintf(fp, "'%d': { name: '*UNKNOWN BLOCK*', id: -1, blockdata: 0 }\n};\n", kColorDefault);
+
+            fclose(fp);
+        }
+        else {
+            log::error("Failed to open javascript output file (fn={} error={} ({}))",
+                control.fnBlockJSON().generic_string(), strerror(errno), errno);
+        }
+
+        return 0;
+    }
+
+    int32_t MinecraftWorld_LevelDB::doOutput_biomeJson()
+    {
+        log::info("Generating {}", control.fnBiomeJSON().generic_string());
+        // create javascript file w/ filenames etc
+        FILE* fp = fopen(control.fnBiomeJSON().generic_string().c_str(), "w");
+        if (fp) {
+            fprintf(fp, "var biomeColorLUT = {\n");
+            for(auto& i : Biome::list()) {
+                if (i->is_color_set()) {
+                    fprintf(fp, "'%d': { name: '%s', id: %d },\n", local_be32toh(i->color()),
+                            escapeString(i->name, "'").c_str(), i->id
+                    );
+                }
+            }
+            // last, put the catch-all
+            fprintf(fp, "'%d': { name: '*UNKNOWN BIOME*', id: -1 }\n};\n", kColorDefault);
+
+
+            fclose(fp);
+        }
+        else {
+            log::error("Failed to open javascript output file (fn={} error={} ({}))",
+                control.fnBiomeJSON().generic_string(), strerror(errno), errno);
+        }
+
+        return 0;
+    }
+
+    int32_t MinecraftWorld_LevelDB::doOutput_imageIconJson()
+    {
+        log::info("Generating {}", control.fnIconJSON().generic_string());
+        FILE* fp = fopen(control.fnIconJSON().generic_string().c_str(), "w");
+        if (fp) {
+            fprintf(fp, "var imageIconLUT = {\n");
+            for (const auto& it : imageFileMap) {
+                fprintf(fp, "'%d': '%s',\n", it.second, it.first.c_str());
+            }
+            fprintf(fp, "'-1': ''};\n");
+
+
+            fclose(fp);
+        }
+        else {
+            log::error("Failed to open javascript output file (fn={} error={} ({}))",
+                control.fnIconJSON().generic_string(), strerror(errno), errno);
+        }
+
+        return 0;
+    }
+
+    int32_t MinecraftWorld_LevelDB::doOutput_json()
+    {
+        doOutput_worldJson();
+        doOutput_blockJson();
+        doOutput_biomeJson();
+        doOutput_imageIconJson();
+
+        return 0;
+    }
+
     int32_t MinecraftWorld_LevelDB::doOutput_html()
     {
-        char tmpstring[1025];
-
         log::info("Do Output: html viewer");
 
         //sprintf(tmpstring, "%s/bedrock_viz.html.template", dirExec.c_str());
         const std::string fnHtmlSrc = static_path("bedrock_viz.html.template").generic_string();
-
-        //sprintf(tmpstring, "%s/bedrock_viz.js", dirExec.c_str());
-        const std::string fnJsSrc = static_path("bedrock_viz.js").generic_string();
-
-        //sprintf(tmpstring, "%s/bedrock_viz.css", dirExec.c_str());
-        const std::string fnCssSrc = static_path("bedrock_viz.css").generic_string();
 
         // create html file -- need to substitute one variable (extra js file)
         StringReplacementList replaceStrings;
@@ -977,18 +1176,6 @@ namespace mcpe_viz
         // create javascript file w/ filenames etc
         FILE* fp = fopen(control.fnJs().generic_string().c_str(), "w");
         if (fp) {
-            time_t xtime = time(NULL);
-            char timebuf[256];
-#if _MSC_VER
-            ctime_s(timebuf, 256, &xtime);
-#else 
-            ctime_r(&xtime, timebuf);
-#endif
-            // todo - this is hideous.
-            // fix time string
-            char* p = strchr(timebuf, '\n');
-            if (p) { *p = 0; }
-
             fprintf(fp,
                 "// mcpe_viz javascript helper file -- created by bedrock_viz program\n"
                 "var worldName = '%s';\n"
@@ -1001,7 +1188,7 @@ namespace mcpe_viz
                 "var tileW = %d;\n"
                 "var tileH = %d;\n"
                 "var dimensionInfo = {\n", escapeString(getWorldName().c_str(), "'").c_str(),
-                (long long int) getWorldSeed(), escapeString(timebuf, "'").c_str(),
+                (long long int) getWorldSeed(), getCurrentTime().c_str(),
                 version, control.noForceGeoJSONFlag ? "true" : "false",
                 mybasename(control.fnGeoJSON().generic_string()).c_str(),
                 control.doTiles ? "true" : "false", control.tileWidth,
@@ -1017,10 +1204,10 @@ namespace mcpe_viz
                 double px = playerPositionImageX;
                 double py = playerPositionImageY;
 
-                /* 
-                tomnolan: I'm of the opinion that we should be setting the default position to 0,0 
-                          for any dimensions the player is not located. If the player is in the nether, 
-                          we shouldn't be setting the map position to x/8,z/8 in the overworld because 
+                /*
+                tomnolan: I'm of the opinion that we should be setting the default position to 0,0
+                          for any dimensions the player is not located. If the player is in the nether,
+                          we shouldn't be setting the map position to x/8,z/8 in the overworld because
                           this position has no relevance. They may have never traveled to that position
                           in the overworld ever and a user will see a mass of white space on their screen
                           when they load the map by default. This is very confusing.
@@ -1162,6 +1349,19 @@ namespace mcpe_viz
                 control.fnJs().generic_string(), strerror(errno), errno);
         }
 
+        return 0;
+    }
+
+    int32_t MinecraftWorld_LevelDB::doOutput_helperFiles()
+    {
+        char tmpstring[1025];
+
+        //sprintf(tmpstring, "%s/bedrock_viz.js", dirExec.c_str());
+        const std::string fnJsSrc = static_path("bedrock_viz.js").generic_string();
+
+        //sprintf(tmpstring, "%s/bedrock_viz.css", dirExec.c_str());
+        const std::string fnCssSrc = static_path("bedrock_viz.css").generic_string();
+
         // copy helper files to destination directory
         std::string dirDest = control.outputDir.generic_string();
 
@@ -1189,7 +1389,6 @@ namespace mcpe_viz
             local_mkdir(dirImages);
             //copyDirToDir(dirExec + "/images", dirImages, true);
             copyDirToDir(static_path("images").generic_string(), dirImages, true);
-
         }
         else {
             // if same dir, don't copy files
@@ -1273,7 +1472,9 @@ namespace mcpe_viz
             // }
 
             doOutput_Tile();
+            doOutput_json();
             doOutput_html();
+            doOutput_helperFiles();
             doOutput_GeoJSON();
         }
 

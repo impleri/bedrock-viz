@@ -1229,6 +1229,8 @@ namespace mcpe_viz
 
                 worldPointToGeoJSONPoint(actualDimensionId, pos.x, pos.z, playerPositionImageX, playerPositionImageY);
                 playerPositionDimensionId = actualDimensionId;
+                playerPositionX = pos.x;
+                playerPositionY = pos.z;
 
                 log::info("Player Position: Dimension={} Pos={} Rotation=({}, {})"
                     , actualDimensionId

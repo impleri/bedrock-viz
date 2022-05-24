@@ -17,6 +17,7 @@ namespace mcpe_viz {
 
     extern int32_t globalIconImageId;
 
+    extern double playerPositionX, playerPositionY;
     extern double playerPositionImageX, playerPositionImageY;
     extern int32_t playerPositionDimensionId;
 }

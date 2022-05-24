@@ -8,6 +8,7 @@ namespace mcpe_viz {
     int32_t globalIconImageId = 1;
 
     // todobig -- would be nice for these to be in world class
+    double playerPositionX = 0.0, playerPositionY = 0.0;
     double playerPositionImageX = 0.0, playerPositionImageY = 0.0;
     int32_t playerPositionDimensionId = kDimIdOverworld;
 }
