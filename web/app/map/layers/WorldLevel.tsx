@@ -16,5 +16,13 @@ export const WorldLevel = ({ dimension, type = MAP_TYPE.OVERVIEW, yLevel, visibl
   const projection = useProjection(dimension);
   const mapUrl = useMapUrl(dimension.name, yLevel ?? type);
 
-  return <RLayerTile url={mapUrl} tileGrid={tileGrid} projection={projection as unknown as string} visible={visible} />;
+  return (
+    <RLayerTile
+      attributions="Created by bedrock_viz"
+      url={mapUrl}
+      tileGrid={tileGrid}
+      projection={projection as unknown as string}
+      visible={visible}
+    />
+  );
 };

@@ -4,6 +4,7 @@ import { Projection } from "ol/proj";
 import { RContextType } from "rlayers";
 import { default as RControlBase, RControlProps } from "rlayers/control/RControlBase";
 
+// TODO: PR into rlayers directly
 export interface MousePositionProps extends RControlProps {
   coordinateFormat?: (coordinate: Coordinate) => string;
   projection?: Projection;
