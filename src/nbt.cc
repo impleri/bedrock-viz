@@ -37,9 +37,11 @@ namespace mcpe_viz
         char tmpstring[256];
 
         std::string s =
-            "{"
-            "\"type\":\"Feature\","
-            "\"geometry\":{\"type\":\"Point\",\"coordinates\":["
+            "    {\n"
+            "      \"type\": \"Feature\",\n"
+            "      \"geometry\": {\n"
+            "        \"type\": \"Point\",\n"
+            "        \"coordinates\": ["
             ;
         if (std::isnan(ix) || std::isnan(iy)) {
             // we don't put out anything because "NaN" is not valid JSON
@@ -55,8 +57,8 @@ namespace mcpe_viz
             s += tmpstring;
         }
         s +=
-            "]},"
-            "\"properties\":{"
+            "]\n      },\n" // close geometry
+            "      \"properties\": {\n"
             ;
         return s;
     }
@@ -66,9 +68,11 @@ namespace mcpe_viz
         char tmpstring[256];
 
         std::string s =
-            "{"
-            "\"type\":\"Feature\","
-            "\"geometry\":{\"type\":\"MultiPoint\",\"coordinates\":["
+            "    {\n"
+            "      \"type\": \"Feature\",\n"
+            "      \"geometry\":{\n"
+            "        \"type\":\"MultiPoint\",\n"
+            "        \"coordinates\": [\n"
             ;
 
         for (int i = 0; i < n; i++) {
@@ -80,16 +84,18 @@ namespace mcpe_viz
                 iy[i] += 0.5;
             }
 
-            sprintf(tmpstring, "[%.1lf,%.1lf]", ix[i], iy[i]);
+            sprintf(tmpstring, "        [%.1lf,%.1lf]", ix[i], iy[i]);
             s += tmpstring;
             if (i < (n - 1)) {
                 s += ",";
             }
+            s += "\n";
         }
 
         s +=
-            "]},"
-            "\"properties\":{"
+            "        ]\n" // close coordinates
+            "      },\n" // close geometry
+            "      \"properties\": {\n"
             ;
         return s;
     }
@@ -1007,48 +1013,46 @@ namespace mcpe_viz
                 return "";
             }
 
-            double ix, iy;
-            worldPointToGeoJSONPoint(forceDimensionId, pos.x, pos.z, ix, iy);
-            s += makeGeojsonHeader(ix, iy);
+            s += makeGeojsonHeader(pos.x, pos.z);
 
             auto entity = Entity::get(idShort);
             if (entity != nullptr) {
-                sprintf(tmpstring, "\"Name\":\"%s\"", entity->name.c_str());
+                sprintf(tmpstring, "        \"Name\":\"%s\"", entity->name.c_str());
                 list.push_back(std::string(tmpstring));
                 std::string e = (entity->etype == Entity::EType::P ? "P" : (
                     entity->etype == Entity::EType::H ? "H" : ""
                     ));
-                sprintf(tmpstring, "\"etype\":\"%s\"", e.c_str());
+                sprintf(tmpstring, "        \"etype\":\"%s\"", e.c_str());
                 list.push_back(std::string(tmpstring));
             }
             else {
-                sprintf(tmpstring, "\"Name\":\"*UNKNOWN: id=%d 0x%x\"", idShort, idShort);
+                sprintf(tmpstring, "        \"Name\":\"*UNKNOWN: id=%d 0x%x\"", idShort, idShort);
                 list.push_back(std::string(tmpstring));
             }
 
-            sprintf(tmpstring, "\"id\":\"%d\"", idShort);
+            sprintf(tmpstring, "        \"id\":\"%d\"", idShort);
             list.push_back(std::string(tmpstring));
 
-            sprintf(tmpstring, "\"idFull\":\"%d\"", idFull);
+            sprintf(tmpstring, "        \"idFull\":\"%d\"", idFull);
             list.push_back(std::string(tmpstring));
 
             // todo - needed?
             if (playerLocalFlag || playerRemoteFlag) {
-                list.push_back(std::string("\"player\":\"true\""));
+                list.push_back(std::string("        \"player\":\"true\""));
 
-                sprintf(tmpstring, "\"playerType\":\"%s\"", playerType.c_str());
+                sprintf(tmpstring, "        \"playerType\":\"%s\"", playerType.c_str());
                 list.push_back(std::string(tmpstring));
 
-                sprintf(tmpstring, "\"playerId\":\"%s\"", playerId.c_str());
+                sprintf(tmpstring, "        \"playerId\":\"%s\"", playerId.c_str());
                 list.push_back(std::string(tmpstring));
 
                 if (has_key(playerIdToName, playerId)) {
-                    sprintf(tmpstring, "\"playerName\":\"%s\"", playerIdToName[playerId].c_str());
+                    sprintf(tmpstring, "        \"playerName\":\"%s\"", playerIdToName[playerId].c_str());
                     log::info("    mapped to {}", playerIdToName[playerId]);
                     list.push_back(std::string(tmpstring));
                 }
                 else {
-                    sprintf(tmpstring, "\"playerName\":\"*UNKNOWN*\"");
+                    sprintf(tmpstring, "        \"playerName\":\"*UNKNOWN*\"");
                     list.push_back(std::string(tmpstring));
                     // we log it to screen so that people have an easier time adding new player name mappings
                     if (playerId.length() > 0) {
@@ -1062,20 +1066,20 @@ namespace mcpe_viz
 
             if (forceDimensionId >= 0) {
                 // getting dimension name from myWorld is more trouble than it's worth here :)
-                sprintf(tmpstring, "\"Dimension\":\"%d\"", forceDimensionId);
+                sprintf(tmpstring, "        \"Dimension\":\"%d\"", forceDimensionId);
                 list.push_back(std::string(tmpstring));
             }
 
-            sprintf(tmpstring, "\"Pos\":[%s]", pos.toGeoJSON().c_str());
+            sprintf(tmpstring, "        \"Pos\":[%s]", pos.toGeoJSON().c_str());
             list.push_back(std::string(tmpstring));
 
-            sprintf(tmpstring, "\"Rotation\":[%s]", rotation.toGeoJSON().c_str());
+            sprintf(tmpstring, "        \"Rotation\":[%s]", rotation.toGeoJSON().c_str());
             list.push_back(std::string(tmpstring));
 
             if (playerLocalFlag || playerRemoteFlag) {
-                sprintf(tmpstring, "\"BedPos\":[%s]", bedPosition.toGeoJSON().c_str());
+                sprintf(tmpstring, "        \"BedPos\":[%s]", bedPosition.toGeoJSON().c_str());
                 list.push_back(std::string(tmpstring));
-                sprintf(tmpstring, "\"Spawn\":[%s]", spawn.toGeoJSON().c_str());
+                sprintf(tmpstring, "        \"Spawn\":[%s]", spawn.toGeoJSON().c_str());
                 list.push_back(std::string(tmpstring));
             }
 
@@ -1084,19 +1088,21 @@ namespace mcpe_viz
                 for (const auto& it : armorList) {
                     std::string sarmor = it->toGeoJSON(true, 0, false);
                     if (sarmor.size() > 0) {
-                        tlist.push_back(std::string("{" + sarmor + "}"));
+                        tlist.push_back(std::string("          {" + sarmor + "}"));
                     }
                 }
+
                 if (tlist.size() > 0) {
-                    std::string ts = "\"Armor\":[";
+                    std::string ts = "        \"Armor\": [\n";
                     int32_t i = int32_t(tlist.size());
                     for (const auto& iter : tlist) {
                         ts += iter;
                         if (--i > 0) {
                             ts += ",";
                         }
+                        ts += "\n";
                     }
-                    ts += "]";
+                    ts += "        ]";
                     list.push_back(ts);
                 }
             }
@@ -1106,19 +1112,21 @@ namespace mcpe_viz
                 for (const auto& it : inventory) {
                     std::string sitem = it->toGeoJSON(true, 0, true);
                     if (sitem.size() > 0) {
-                        tlist.push_back(std::string("{" + sitem + "}"));
+                        tlist.push_back(std::string("          {" + sitem + "}"));
                     }
                 }
+
                 if (tlist.size() > 0) {
-                    std::string ts = "\"Inventory\":[";
+                    std::string ts = "        \"Inventory\": [\n";
                     int32_t i = int32_t(tlist.size());
                     for (const auto& iter : tlist) {
                         ts += iter;
                         if (--i > 0) {
                             ts += ",";
                         }
+                        ts += "\n";
                     }
-                    ts += "]";
+                    ts += "        ]";
                     list.push_back(ts);
                 }
             }
@@ -1128,29 +1136,31 @@ namespace mcpe_viz
                 for (const auto& it : enderchest) {
                     std::string sitem = it->toGeoJSON(true, 0, true);
                     if (sitem.size() > 0) {
-                        tlist.push_back(std::string("{" + sitem + "}"));
+                        tlist.push_back(std::string("          {" + sitem + "}"));
                     }
                 }
+
                 if (tlist.size() > 0) {
-                    std::string ts = "\"EnderChest\":[";
+                    std::string ts = "        \"EnderChest\": [\n";
                     int32_t i = int32_t(tlist.size());
                     for (const auto& iter : tlist) {
                         ts += iter;
                         if (--i > 0) {
                             ts += ",";
                         }
+                        ts += "\n";
                     }
-                    ts += "]";
+                    ts += "        ]";
                     list.push_back(ts);
                 }
             }
 
             if (itemInHand.valid) {
-                list.push_back(std::string("\"ItemInHand\":{" + itemInHand.toGeoJSON() + "}"));
+                list.push_back(std::string("        \"ItemInHand\":{" + itemInHand.toGeoJSON() + "}"));
             }
 
             if (item.valid) {
-                list.push_back(std::string("\"Item\":{" + item.toGeoJSON() + "}"));
+                list.push_back(std::string("        \"Item\":{" + item.toGeoJSON() + "}"));
             }
 
             if (!otherPropsSortedFlag) {
@@ -1158,7 +1168,7 @@ namespace mcpe_viz
                 otherPropsSortedFlag = true;
             }
             for (const auto& it : otherProps) {
-                list.push_back(std::string("\"" + it.first + "\":\"" + it.second + "\""));
+                list.push_back(std::string("        \"" + it.first + "\":\"" + it.second + "\""));
             }
 
             // todo?
@@ -1170,16 +1180,18 @@ namespace mcpe_viz
             */
 
             if (list.size() > 0) {
-                list.push_back(std::string("\"Entity\":\"true\""));
+                list.push_back(std::string("        \"Entity\": \"true\""));
                 int32_t i = int32_t(list.size());
                 for (const auto& iter : list) {
                     s += iter;
                     if (--i > 0) {
                         s += ",";
                     }
+                    s += "\n";
                 }
             }
-            s += "}}";
+            s += "      }\n"; // close properties
+            s += "    }"; // close entity feature
 
             return s;
         }
@@ -1424,11 +1436,11 @@ namespace mcpe_viz
             char tmpstring[1025];
 
             if (containerFlag) {
-                list.push_back("\"Name\":\"" + id + "\"");
+                list.push_back("        \"Name\":\"" + id + "\"");
 
                 if (pairChest.valid) {
                     // todobig - should we keep lists and combine chests so that we can show full content of double chests?
-                    list.push_back("\"pairchest\":[" + pairChest.toGeoJSON() + "]");
+                    list.push_back("        \"pairchest\":[" + pairChest.toGeoJSON() + "]");
                 }
 
                 std::vector<std::string> tlist;
@@ -1438,32 +1450,35 @@ namespace mcpe_viz
                         tlist.push_back(sitem);
                     }
                 }
+
                 if (tlist.size() > 0) {
-                    std::string ts = "\"Items\":[";
+                    std::string ts = "        \"Items\": [\n";
                     int32_t i = int32_t(tlist.size());
                     for (const auto& iter : tlist) {
-                        ts += "{" + iter + "}";
+                        ts += "          {" + iter + "}";
                         if (--i > 0) {
                             ts += ",";
                         }
+                        ts += "\n";
                     }
-                    ts += "]";
+                    ts += "        ]";
                     list.push_back(ts);
                 }
             }
 
             if (notes.size() > 0) {
-                std::string ts = "\"Notes\":{";
+                std::string ts = "        \"Notes\": {\n";
                 int32_t i = int32_t(notes.size());
                 int32_t t = 1;
                 for (const auto& it : notes) {
-                    sprintf(tmpstring, "\"Note%d\":\"%s\"", t++, escapeString(it, "\"\\").c_str());
+                    sprintf(tmpstring, "          \"Note%d\": \"%s\"", t++, escapeString(it, "\"\\").c_str());
                     ts += tmpstring;
                     if (--i > 0) {
                         ts += ",";
                     }
+                    ts += "\n";
                 }
-                ts += "}";
+                ts += "        }";
                 list.push_back(ts);
             }
 
@@ -1476,56 +1491,55 @@ namespace mcpe_viz
                     xname = "SignNonBlank";
                 }
 
-                list.push_back("\"Name\":\"" + xname + "\"");
-                std::string ts = "\"" + xname + "\":{";
+                list.push_back("        \"Name\":\"" + xname + "\"");
+                std::string ts = "        \"" + xname + "\": {\n";
 
                 int32_t i = int32_t(text.size());
                 int32_t t = 1;
                 for (const auto& it : text) {
                     // todo - think about how to handle weird chars people put in signs
-                    sprintf(tmpstring, "\"Text%d\":\"%s\"", t++, escapeString(it, "\"\\").c_str());
+                    sprintf(tmpstring, "          \"Text%d\":\"%s\"", t++, escapeString(it, "\"\\").c_str());
                     ts += tmpstring;
                     if (--i > 0) {
                         ts += ",";
                     }
+                    ts += "\n";
                 }
-                ts += "}";
+                ts += "        }";
                 list.push_back(ts);
             }
 
             if (entityId > 0) {
-                list.push_back("\"Name\":\"MobSpawner\"");
-                std::string ts = "\"MobSpawner\":{";
-                sprintf(tmpstring, "\"entityId\":\"%d (0x%x)\",", entityId, entityId);
+                list.push_back("        \"Name\": \"MobSpawner\"");
+                std::string ts = "        \"MobSpawner\": {\n";
+                sprintf(tmpstring, "          \"entityId\": \"%d (0x%x)\",\n", entityId, entityId);
                 ts += tmpstring;
 
                 // todo - the entityid is weird.  lsb appears to be entity type; high bytes are ??
                 int32_t eid = entityId & 0xff;
                 auto entity = Entity::get(eid);
                 if (entity != nullptr) {
-                    ts += "\"Name\":\"" + entity->name + "\"";
+                    ts += "          \"Name\":\"" + entity->name + "\"\n";
                 }
                 else {
-                    sprintf(tmpstring, "\"Name\":\"(UNKNOWN: id=%d 0x%x)\"", eid, eid);
+                    sprintf(tmpstring, "          \"Name\":\"(UNKNOWN: id=%d 0x%x)\"\n", eid, eid);
                     ts += tmpstring;
                 }
-                ts += "}";
+                ts += "        }";
                 list.push_back(ts);
             }
 
             if (list.size() > 0) {
                 std::string s = "";
 
-                list.push_back(std::string("\"TileEntity\":\"true\""));
-                sprintf(tmpstring, "\"Dimension\":\"%d\"", forceDimensionId);
+                list.push_back(std::string("        \"TileEntity\": \"true\""));
+                sprintf(tmpstring, "        \"Dimension\": \"%d\"", forceDimensionId);
                 list.push_back(std::string(tmpstring));
 
-                sprintf(tmpstring, "\"Pos\":[%s]", pos.toGeoJSON().c_str());
+                sprintf(tmpstring, "        \"Pos\": [%s]", pos.toGeoJSON().c_str());
                 list.push_back(std::string(tmpstring));
 
-                double ix, iy;
-                worldPointToGeoJSONPoint(forceDimensionId, pos.x, pos.z, ix, iy);
-                s += makeGeojsonHeader(ix, iy);
+                s += makeGeojsonHeader(pos.x, pos.z);
 
                 int32_t i = int32_t(list.size());
                 for (const auto& iter : list) {
@@ -1533,8 +1547,10 @@ namespace mcpe_viz
                     if (--i > 0) {
                         s += ",";
                     }
+                    s += "\n";
                 }
-                s += "}}";
+                s += "      }\n"; // end properties
+                s += "    }"; // end feature/tile entity
                 return s;
             }
 
@@ -2279,34 +2295,32 @@ namespace mcpe_viz
             char tmpstring[1025];
 
             // note: we fake this as a tile entity so that it is easy to deal with in js
-            list.push_back(std::string("\"TileEntity\":\"true\""));
+            list.push_back(std::string("        \"TileEntity\": \"true\""));
 
-            list.push_back("\"Name\":\"NetherPortal\"");
+            list.push_back("        \"Name\": \"NetherPortal\"");
 
-            sprintf(tmpstring, "\"DimId\":\"%d\"", dimId);
+            sprintf(tmpstring, "        \"DimId\": \"%d\"", dimId);
             list.push_back(tmpstring);
 
-            sprintf(tmpstring, "\"Span\":\"%d\"", span);
+            sprintf(tmpstring, "        \"Span\": \"%d\"", span);
             list.push_back(tmpstring);
 
-            sprintf(tmpstring, "\"Xa\":\"%d\"", xa);
+            sprintf(tmpstring, "        \"Xa\": \"%d\"", xa);
             list.push_back(tmpstring);
 
-            sprintf(tmpstring, "\"Za\":\"%d\"", za);
+            sprintf(tmpstring, "        \"Za\": \"%d\"", za);
             list.push_back(tmpstring);
 
             if (list.size() > 0) {
                 std::string s = "";
 
-                sprintf(tmpstring, "\"Dimension\":\"%d\"", dimId);
+                sprintf(tmpstring, "        \"Dimension\": \"%d\"", dimId);
                 list.push_back(std::string(tmpstring));
 
-                sprintf(tmpstring, "\"Pos\":[%s]", pos.toGeoJSON().c_str());
+                sprintf(tmpstring, "        \"Pos\": [%s]", pos.toGeoJSON().c_str());
                 list.push_back(std::string(tmpstring));
 
-                double ix, iy;
-                worldPointToGeoJSONPoint(dimId, pos.x, pos.z, ix, iy);
-                s += makeGeojsonHeader(ix, iy);
+                s += makeGeojsonHeader(pos.x, pos.z);
 
                 int32_t i = int32_t(list.size());
                 for (const auto& iter : list) {
@@ -2314,8 +2328,10 @@ namespace mcpe_viz
                     if (--i > 0) {
                         s += ",";
                     }
+                    s += "\n";
                 }
-                s += "}}";
+                s += "      }\n"; // end properties
+                s += "    }"; // end feature/portal
                 return s;
             }
 
@@ -2628,11 +2644,11 @@ namespace mcpe_viz
             char tmpstring[8192];
 
             // note: we fake this as a tile entity so that it is easy to deal with in js
-            list.push_back(std::string("\"TileEntity\":\"true\""));
+            list.push_back(std::string("        \"TileEntity\": \"true\""));
 
-            list.push_back("\"Name\":\"Village\"");
+            list.push_back("        \"Name\": \"Village\"");
 
-            sprintf(tmpstring, "\"Pos\":[%s]", pos.toGeoJSON().c_str());
+            sprintf(tmpstring, "        \"Pos\": [%s]", pos.toGeoJSON().c_str());
             list.push_back(std::string(tmpstring));
 
             for (auto const& x : players) {
@@ -2643,29 +2659,27 @@ namespace mcpe_viz
                     if (has_key(playerIdToName, playerId)) {
                         playerName = playerIdToName[playerId];
                     }
-                    sprintf(tmpstring, "\"%s's Reputation\": %d", playerName.c_str(), x.second);
+                    sprintf(tmpstring, "        \"%s's Reputation\": %d", playerName.c_str(), x.second);
                     list.push_back(std::string(tmpstring));
                 }
             }
 
-            sprintf(tmpstring, "\"Villager Count\": %ld", villagers.size());
+            sprintf(tmpstring, "        \"Villager Count\": %ld", villagers.size());
             list.push_back(std::string(tmpstring));
-            sprintf(tmpstring, "\"Iron Golem Count\": %ld", golems.size());
+            sprintf(tmpstring, "        \"Iron Golem Count\": %ld", golems.size());
             list.push_back(std::string(tmpstring));
-            sprintf(tmpstring, "\"Cat Count\": %ld", cats.size());
+            sprintf(tmpstring, "        \"Cat Count\": %ld", cats.size());
             list.push_back(std::string(tmpstring));
-            sprintf(tmpstring, "\"Raiders Count\": %ld", raiders.size());
+            sprintf(tmpstring, "        \"Raiders Count\": %ld", raiders.size());
             list.push_back(std::string(tmpstring));
 
             if (list.size() > 0) {
                 std::string s = "";
 
-                sprintf(tmpstring, "\"Dimension\":\"%d\"", 0);
+                sprintf(tmpstring, "        \"Dimension\": \"%d\"", 0);
                 list.push_back(std::string(tmpstring));
 
-                double ix, iy;
-                worldPointToGeoJSONPoint(0, pos.x, pos.z, ix, iy);
-                s += makeGeojsonHeader(ix, iy, false);
+                s += makeGeojsonHeader(pos.x, pos.z, false);
 
                 int32_t i = int32_t(list.size());
                 for (const auto& iter : list) {
@@ -2673,8 +2687,10 @@ namespace mcpe_viz
                     if (--i > 0) {
                         s += ",";
                     }
+                    s += "\n";
                 }
-                s += "}}";
+                s += "      }\n"; // end properties
+                s += "    }"; // end feature/village
                 return s;
             }
 
@@ -2780,37 +2796,37 @@ namespace mcpe_viz
             char tmpstring[8192];
 
             // note: we fake this as a tile entity so that it is easy to deal with in js
-            list.push_back(std::string("\"TileEntity\":\"true\""));
+            list.push_back(std::string("        \"TileEntity\": \"true\""));
 
-            list.push_back("\"Name\":\"Village\"");
+            list.push_back("        \"Name\": \"Village\"");
 
-            sprintf(tmpstring, "\"Pos\":[%s]", pos.toGeoJSON().c_str());
+            sprintf(tmpstring, "        \"Pos\": [%s]", pos.toGeoJSON().c_str());
             list.push_back(std::string(tmpstring));
 
-            sprintf(tmpstring, "\"APos\":[%s]", apos.toGeoJSON().c_str());
+            sprintf(tmpstring, "        \"APos\": [%s]", apos.toGeoJSON().c_str());
             list.push_back(std::string(tmpstring));
 
-            sprintf(tmpstring, "\"FPos\":[%s]", fpos.toGeoJSON().c_str());
+            sprintf(tmpstring, "        \"FPos\": [%s]", fpos.toGeoJSON().c_str());
             list.push_back(std::string(tmpstring));
 
-            sprintf(tmpstring, "\"golems\":%d", golems);
+            sprintf(tmpstring, "        \"golems\": %d", golems);
             list.push_back(std::string(tmpstring));
 
-            sprintf(tmpstring, "\"mTick\":%d", mTick);
+            sprintf(tmpstring, "        \"mTick\": %d", mTick);
             list.push_back(std::string(tmpstring));
 
-            sprintf(tmpstring, "\"radius\":%d", radius);
+            sprintf(tmpstring, "        \"radius\": %d", radius);
             list.push_back(std::string(tmpstring));
 
-            sprintf(tmpstring, "\"stable\":%d", stable);
+            sprintf(tmpstring, "        \"stable\": %d", stable);
             list.push_back(std::string(tmpstring));
 
-            sprintf(tmpstring, "\"tick\":%d", tick);
+            sprintf(tmpstring, "        \"tick\": %d", tick);
             list.push_back(std::string(tmpstring));
 
             templist.clear();
             for (const auto& it : villagerList) {
-                templist.push_back("{" + it->toGeoJSON() + "}");
+                templist.push_back("          {" + it->toGeoJSON() + "}");
             }
             if (templist.size() > 0) {
                 std::string s = "";
@@ -2820,18 +2836,22 @@ namespace mcpe_viz
                     if (--i > 0) {
                         s += ",";
                     }
+                    s += "\n";
                 }
-                sprintf(tmpstring, "\"Villagers\":[%s]", s.c_str());
+                sprintf(tmpstring,
+                    "        \"Villagers\": [\n"
+                    "%s\n"
+                    "        ]", s.c_str());
                 list.push_back(std::string(tmpstring));
             }
             else {
-                sprintf(tmpstring, "\"Villagers\":[]");
+                sprintf(tmpstring, "        \"Villagers\": []");
                 list.push_back(std::string(tmpstring));
             }
 
             templist.clear();
             for (const auto& it : doorList) {
-                templist.push_back("{" + it->toGeoJSON() + "}");
+                templist.push_back("          {" + it->toGeoJSON() + "}");
             }
             if (templist.size() > 0) {
                 std::string s = "";
@@ -2841,20 +2861,21 @@ namespace mcpe_viz
                     if (--i > 0) {
                         s += ",";
                     }
+                    s += "\n";
                 }
                 //sprintf(tmpstring, "\"Doors\":[%s]", s.c_str());
                 //list.push_back(std::string(tmpstring));
-                std::string sout = "\"Doors\":[" + s + "]";
+                std::string sout = "        \"Doors\": [\n" + s + "\n        ]";
                 list.push_back(sout);
             }
             else {
-                sprintf(tmpstring, "\"Doors\":[]");
+                sprintf(tmpstring, "        \"Doors\": []");
                 list.push_back(std::string(tmpstring));
             }
 
             templist.clear();
             for (const auto& it : playerList) {
-                templist.push_back("{" + it->toGeoJSON() + "}");
+                templist.push_back("          {" + it->toGeoJSON() + "}");
             }
             if (templist.size() > 0) {
                 std::string s;
@@ -2865,26 +2886,29 @@ namespace mcpe_viz
                         s += ",";
                     }
                 }
-                sprintf(tmpstring, "\"Players\":[%s]", s.c_str());
+                sprintf(tmpstring,
+                    "        \"Players\": [\n"
+                    "%s\n"
+                    "        ]",
+                    s.c_str()
+                );
                 list.push_back(std::string(tmpstring));
             }
             else {
-                sprintf(tmpstring, "\"Players\":[]");
+                sprintf(tmpstring, "        \"Players\": []");
                 list.push_back(std::string(tmpstring));
             }
 
             if (list.size() > 0) {
                 std::string s = "";
 
-                sprintf(tmpstring, "\"Dimension\":\"%d\"", 0);
+                sprintf(tmpstring, "        \"Dimension\": \"%d\"", 0);
                 list.push_back(std::string(tmpstring));
 
                 // todobig - just a test
 #if 1
         // point style
-                double ix, iy;
-                worldPointToGeoJSONPoint(0, fpos.x, fpos.z, ix, iy);
-                s += makeGeojsonHeader(ix, iy, false);
+                s += makeGeojsonHeader(pos.x, pos.z, false);
 #else
         // multi-point style
                 int npoints = doorList.size() + 1;
@@ -2917,8 +2941,10 @@ namespace mcpe_viz
                     if (--i > 0) {
                         s += ",";
                     }
+                    s += "\n";
                 }
-                s += "}}";
+                s += "    }\n"; // close properties
+                s += "  }"; // close feature/village
                 return s;
             }
 

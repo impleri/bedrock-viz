@@ -131,7 +131,7 @@ namespace mcpe_viz {
         int32_t doOutput_worldJson();
         int32_t doOutput_blockJson();
         int32_t doOutput_biomeJson();
-        int32_t doOutput_imageIconJson();
+        int32_t doOutput_imageJson();
         int32_t doOutput_json();
 
         int32_t doOutput_html();

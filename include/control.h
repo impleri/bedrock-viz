@@ -24,9 +24,8 @@ namespace mcpe_viz {
         std::filesystem::path fnWorldJSON() const { return this->outputDir / "world.json"; }
         std::filesystem::path fnBlockJSON() const { return this->outputDir / "blocks.json"; }
         std::filesystem::path fnBiomeJSON() const { return this->outputDir / "biomes.json"; }
-        std::filesystem::path fnIconJSON() const { return this->outputDir / "icons.json"; }
-
-        std::filesystem::path fnGeoJSON() const { return this->outputDir / "output.geojson";  }
+        std::filesystem::path fnIconJSON() const { return this->outputDir / "images.json"; }
+        std::filesystem::path fnGeoJSON() const { return this->outputDir / "features.geojson";  }
 
         // per-dimension filenames
         std::string fnLayerTop[kDimIdCount];
@@ -95,7 +94,7 @@ namespace mcpe_viz {
             doImageHeightColAlpha = kDimIdNone;
             doImageSlimeChunks = kDimIdNone;
             doImageShadedRelief = kDimIdNone;
-            noForceGeoJSONFlag = false;
+            noForceGeoJSONFlag = true;
  
             // todobig - reasonable default? strike a balance between speed/# of files
             tileWidth = 2048;

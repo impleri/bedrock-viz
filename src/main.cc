@@ -487,7 +487,7 @@ namespace mcpe_viz {
 			("html", "Create html and javascript files to use as a fancy viewer")
 			("html-most", "Create html, javascript, and most image files to use as a fancy viewer")
 			("html-all", "Create html, javascript, and *all* image files to use as a fancy viewer")
-			("no-force-geojson", "Don't load geojson in html because we are going to use a web server (or Firefox)")
+			("force-geojson", "Don't load geojson in html because we are going to use a web server (or Firefox)")
 			("no-tile", "Generates single images instead of tiling output into smaller images. May cause loading problems if image size is > 4096px by 4096px")
 			("tile-size", value<std::string>(), "Changes tile sizes to specified dimensions (Default: 2048px by 2048px)")
 			("shortrun", "Debug testing parameter - process only first 1000 records")
@@ -745,9 +745,9 @@ namespace mcpe_viz {
                         kDimIdAll;
                 control.doImageSlimeChunks = kDimJustOverworld;
 			}
-			// --no-force-geojson
-			if (vm.count("no-force-geojson")) {
-				control.noForceGeoJSONFlag = true;
+			// --force-geojson
+			if (vm.count("force-geojson")) {
+				control.noForceGeoJSONFlag = false;
 			}
 			// --biome[=did]
 			if (vm.count("biome")) {

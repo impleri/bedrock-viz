@@ -967,12 +967,15 @@ namespace mcpe_viz
                 "  \"seed\": %lld,\n"
                 "  \"generatedAt\": \"%s\",\n"
                 "  \"generatorVersion\": \"%s\",\n"
-                "  \"includesGeoJSON\": %s,\n",
+                "  \"includesGeoJSON\": %s,\n"
+                "  \"worldSpawn\": [%d, %d],\n",
                 escapeString(getWorldName().c_str(), "'").c_str(),
                 (long long int) getWorldSeed(),
                 getCurrentTime().c_str(),
                 version,
-                control.noForceGeoJSONFlag ? "true" : "false"
+                control.noForceGeoJSONFlag ? "true" : "false",
+                getWorldSpawnX(),
+                getWorldSpawnZ()
             );
 
             // If we generate tiles, indicate the tile size
@@ -1003,6 +1006,8 @@ namespace mcpe_viz
                     dimDataList[did]->checkDoForDim(control.doSlices) ? "true" : "false");
                 fprintf(fp, "      \"spawnable\": %s",
                     (dimDataList[did]->listCheckSpawn.size() > 0) ? "true" : "false");
+
+                // TODO: playerPosition{X,Y} is not updating like playerPositionImage{X,Y}
                 if (did == playerPositionDimensionId)
                 {
                     fprintf(fp, ",\n      \"localPlayerPos\": [%d, %d]", playerPositionX, playerPositionY);
@@ -1050,29 +1055,57 @@ namespace mcpe_viz
         // create javascript file w/ filenames etc
         FILE* fp = fopen(control.fnBlockJSON().generic_string().c_str(), "w");
         if (fp) {
-
-            fprintf(fp, "var blockColorLUT = {\n");
+            fprintf(fp, "[\n");
             for(auto& i: Block::list()) {
                 if (i->hasVariants()) {
                     for(auto& v: i->getVariants()) {
-                        fprintf(fp, "'%d': { name: '%s', id: %d, blockdata: %d },\n",
-                                local_be32toh(v.second->color()),
-                                escapeString(v.second->name, "'").c_str(),
-                                i->id, v.second->data
+                        fprintf(fp,
+                            "  {\n"
+                            "    \"id\": \"%d\",\n"
+                            "    \"name\": \"%s\",\n"
+                            "    \"color\": \"%d\",\n"
+                            "    \"variant\": \"%d\"\n"
+                            "  },\n",
+                            i->id,
+                            escapeString(v.second->name, "'").c_str(),
+                            local_be32toh(v.second->color()),
+                            v.second->data
                         );
                     }
                 }
                 else {
                     if (i->is_color_set()) {
-                        fprintf(fp, "'%d': { name: '%s', id: %d, blockdata: %d },\n",
-                                local_be32toh(i->color()), escapeString(i->name, "'").c_str(),
-                                i->id, 0
+                        fprintf(fp,
+                            "  {\n"
+                            "    \"id\": \"%d\",\n"
+                            "    \"name\": \"%s\",\n"
+                            "    \"color\": \"%d\"\n"
+                            "  },\n",
+                            i->id,
+                            escapeString(i->name, "'").c_str(),
+                            local_be32toh(i->color())
+                        );
+                    } else {
+                        fprintf(fp,
+                            "  {\n"
+                            "    \"id\": \"%d\",\n"
+                            "    \"name\": \"%s\"\n"
+                            "  },\n",
+                            i->id,
+                            escapeString(i->name, "'").c_str()
                         );
                     }
                 }
             }
+
             // last, put the catch-all
-            fprintf(fp, "'%d': { name: '*UNKNOWN BLOCK*', id: -1, blockdata: 0 }\n};\n", kColorDefault);
+            fprintf(fp,
+                "  {\n"
+                "    \"id\": \"-1\",\n"
+                "    \"name\": \"*UNKNOWN BLOCK*\",\n"
+                "    \"color\": \"%d\"\n"
+                "  }\n]\n",
+                kColorDefault);
 
             fclose(fp);
         }
@@ -1090,16 +1123,40 @@ namespace mcpe_viz
         // create javascript file w/ filenames etc
         FILE* fp = fopen(control.fnBiomeJSON().generic_string().c_str(), "w");
         if (fp) {
-            fprintf(fp, "var biomeColorLUT = {\n");
+            fprintf(fp, "[\n");
             for(auto& i : Biome::list()) {
                 if (i->is_color_set()) {
-                    fprintf(fp, "'%d': { name: '%s', id: %d },\n", local_be32toh(i->color()),
-                            escapeString(i->name, "'").c_str(), i->id
+                    fprintf(fp,
+                        "  {\n"
+                        "    \"id\": \"%d\",\n"
+                        "    \"name\": \"%s\",\n"
+                        "    \"color\": \"%d\"\n"
+                        "  },\n",
+                        i->id,
+                        escapeString(i->name, "'").c_str(),
+                        local_be32toh(i->color())
+                    );
+                } else {
+                    fprintf(fp,
+                        "  {\n"
+                        "    \"id\": \"%d\",\n"
+                        "    \"name\": \"%s\"\n"
+                        "  },\n",
+                        i->id,
+                        escapeString(i->name, "'").c_str()
                     );
                 }
             }
+
             // last, put the catch-all
-            fprintf(fp, "'%d': { name: '*UNKNOWN BIOME*', id: -1 }\n};\n", kColorDefault);
+            fprintf(fp,
+                "  {\n"
+                "    \"id\": \"-1\",\n"
+                "    \"name\": \"*UNKNOWN BIOME*\",\n"
+                "    \"color\": \"%d\"\n"
+                "  }\n]\n",
+                kColorDefault
+            );
 
 
             fclose(fp);
@@ -1112,16 +1169,16 @@ namespace mcpe_viz
         return 0;
     }
 
-    int32_t MinecraftWorld_LevelDB::doOutput_imageIconJson()
+    int32_t MinecraftWorld_LevelDB::doOutput_imageJson()
     {
         log::info("Generating {}", control.fnIconJSON().generic_string());
         FILE* fp = fopen(control.fnIconJSON().generic_string().c_str(), "w");
         if (fp) {
-            fprintf(fp, "var imageIconLUT = {\n");
+            fprintf(fp, "{\n");
             for (const auto& it : imageFileMap) {
-                fprintf(fp, "'%d': '%s',\n", it.second, it.first.c_str());
+                fprintf(fp, "  \"%d\": \"%s\",\n", it.second, it.first.c_str());
             }
-            fprintf(fp, "'-1': ''};\n");
+            fprintf(fp, "  \"-1\": \"\"\n}\n");
 
 
             fclose(fp);
@@ -1134,16 +1191,7 @@ namespace mcpe_viz
         return 0;
     }
 
-    int32_t MinecraftWorld_LevelDB::doOutput_json()
-    {
-        doOutput_worldJson();
-        doOutput_blockJson();
-        doOutput_biomeJson();
-        doOutput_imageIconJson();
-
-        return 0;
-    }
-
+    // TODO: Remove after completing new FE
     int32_t MinecraftWorld_LevelDB::doOutput_html()
     {
         log::info("Do Output: html viewer");
@@ -1412,11 +1460,18 @@ namespace mcpe_viz
         if (!control.noForceGeoJSONFlag) {
             fprintf(fpGeoJSON, "var geojson =\n");
         }
+
         fprintf(fpGeoJSON,
-            "{ \"type\": \"FeatureCollection\",\n"
+            "{\n"
+            "  \"type\": \"FeatureCollection\",\n"
             // todo - correct way to specify this?
-            "\"crs\": { \"type\": \"name\", \"properties\": { \"name\": \"bedrock_viz-image\" } },\n"
-            "\"features\": [\n"
+            "  \"crs\": {\n"
+            "    \"type\": \"name\",\n"
+            "    \"properties\": {\n"
+            "      \"name\": \"bedrock_viz-image\"\n"
+            "    }\n"
+            "  },\n"
+            "  \"features\": [\n"
         );
 
         // put the list with correct commas (silly)
@@ -1430,12 +1485,11 @@ namespace mcpe_viz
         }
 
         // close out the geojson properly
-        if (control.noForceGeoJSONFlag) {
-            fprintf(fpGeoJSON, "] }\n");
+        fprintf(fpGeoJSON, "  ]\n}");
+        if (!control.noForceGeoJSONFlag) {
+            fprintf(fpGeoJSON, ";");
         }
-        else {
-            fprintf(fpGeoJSON, "] };\n");
-        }
+        fprintf(fpGeoJSON, "\n");
 
         fclose(fpGeoJSON);
         return 0;
@@ -1472,7 +1526,10 @@ namespace mcpe_viz
             // }
 
             doOutput_Tile();
-            doOutput_json();
+            doOutput_worldJson();
+            doOutput_blockJson();
+            doOutput_biomeJson();
+            doOutput_imageJson();
             doOutput_html();
             doOutput_helperFiles();
             doOutput_GeoJSON();
