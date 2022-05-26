@@ -38,6 +38,17 @@ export const MAP_DETAIL_NAME: Record<MAP_DETAIL, string> = {
   [MAP_DETAIL.SLIME]: "Slime Chunks",
 };
 
+export enum LAYERS {
+  RELIEF = 100,
+  ELEVATION = 110,
+  ELEVATION_ALPHA = 120,
+  CHUNK_GRID = 200,
+  SLIME = 210,
+  FEATURE = 300,
+  DRAW = 400,
+  CONTROLS = 500,
+}
+
 export const DEFAULT_TILE_SIZE = 2048;
 
 export const DEFAULT_WORLD_NAME = "My World";

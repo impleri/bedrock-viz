@@ -8,9 +8,10 @@ type MapInfoState = {
   bedrockVizVersion: string;
   createdAt: Date;
   dimensions: Dimension[];
-  tileSize: [number, number];
   name: string;
   seed: string | number;
+  tileSize: [number, number];
+  worldSpawn: [number, number];
 };
 
 const MapInfoContext = createContext<MapInfoState>({
@@ -20,6 +21,7 @@ const MapInfoContext = createContext<MapInfoState>({
   name: "",
   seed: "",
   tileSize: [DEFAULT_TILE_SIZE, DEFAULT_TILE_SIZE],
+  worldSpawn: [0, 0],
 });
 
 export const useMapInfo = () => useContext(MapInfoContext);
@@ -31,6 +33,7 @@ export const MapInfoProvider = ({
   bedrockVizVersion = "",
   createdAt = new Date(),
   dimensions = [],
+  worldSpawn = [0, 0],
   name = DEFAULT_WORLD_NAME,
   seed = UNKNOWN_SEED,
   ...tileSizeOptions
@@ -41,9 +44,10 @@ export const MapInfoProvider = ({
     bedrockVizVersion,
     createdAt,
     dimensions,
-    tileSize,
     name,
     seed,
+    tileSize,
+    worldSpawn,
   };
 
   return <MapInfoContext.Provider value={state}>{children}</MapInfoContext.Provider>;

@@ -10,10 +10,12 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 );
 
 /* TODO:
- * - Base Layers (Block, Biome, Height, Gray Height)
- * - Overlays (Grid, Slime, Elevation, Relief)
- * - Options (Chunk Coords, Translate Nether Coords, Show mobs within X block of players)
- * - Measure
+ * - Map Overview Control
+ * - Why only Nether Dimension map tiles aren't loading?
+ * - Overlay Control (Grid, Slime, Elevation, Relief)
+ * - Option Control (Chunk Coords, Translate Nether Coords, Show mobs within X block of players)
+ * - Measure Control
  * - Theming
  * - Help/Tour
+ * - Translation
  */

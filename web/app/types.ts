@@ -20,6 +20,7 @@ export type Info = {
   generatedAt: string;
   generatorVersion: string;
   includesGeoJSON: boolean;
+  worldSpawn: [number, number];
   tileSize: [number, number] | false;
   dimensions: Dimension[];
 };
